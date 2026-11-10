@@ -2,7 +2,7 @@
 import argparse
 from datetime import timedelta
 from . import odds, store, tg, rules, sync
-from .config import (BOOKS, ODDS_MIN, ODDS_MAX, MIN_EDGE, SEASON_END_SKIP, BLOWOUT_SPREAD, MIN_GAMES,
+from .config import (BOOKS, ODDS_MIN, ODDS_MAX, MIN_EDGE, MARKET_WEIGHT, ALT_MARGIN, SEASON_END_SKIP, BLOWOUT_SPREAD, MIN_GAMES,
                      SLATE_HOURS, DRY_RUN, STAT_NAME)
 from .espn import Espn, tkey
 from .model import project, prob_over
@@ -126,7 +126,9 @@ def evaluate_event(ev, espn, injuries, standings, spread):
                     best_by_line[point] = (book, px)
         best = None
         for point, (book, px) in best_by_line.items():
-            p, hits = prob_over(point, mu, sigma, last)
+            p_model, hits = prob_over(point, mu, sigma, last)
+            p_market = (1 / px) / (1 + ALT_MARGIN)
+            p = (1 - MARKET_WEIGHT) * p_model + MARKET_WEIGHT * p_market
             edge = p * px - 1
             if best is None or edge > best["edge"]:
                 best = {"line": point, "book": book, "odds": px, "edge": edge, "p": p, "hits": hits}

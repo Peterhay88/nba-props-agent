@@ -13,6 +13,9 @@ WEEK_STOP = 1000.0
 MAX_BETS_DAY = 4
 DRAWDOWN_FLOOR = 3500.0
 MIN_STAKE = 50.0
+# Shrink the model toward the bookie's own price: small samples overstate edges.
+MARKET_WEIGHT = 0.5      # 50% model, 50% market
+ALT_MARGIN = 0.06        # assumed bookie margin on alternate lines
 
 BOOKS = {"sportsbet": "Sportsbet", "neds": "Neds", "tab": "TAB"}
 # stat -> (main market, alt market, ESPN gamelog label, ESPN box key)
