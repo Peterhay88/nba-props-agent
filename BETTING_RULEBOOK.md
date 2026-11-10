@@ -28,7 +28,7 @@ A selection can be bet ONLY if the agent has flagged it as qualified, which mean
 3. **Edge recalculated on the line actually bet.** If the agent found value on Over 4.5 rebounds @ $1.90 and the bet is Over 3.5 @ $1.40, the edge must be worked out again for Over 3.5. It cannot carry over from the main line. Alt lines usually carry a bigger bookie margin.
 4. **Minimum edge: 3%** on that line (model probability × odds − 1 ≥ 0.03).
 5. **Player status confirmed:** not listed out or questionable, and projected minutes are in line with the season average.
-6. **Best price taken** across Sportsbet, Neds, TAB and Bet365.
+6. **Best price taken** across Sportsbet, Neds and TAB (scanned automatically). Bet365 is checked manually against the agent's picks, and a better Bet365 price is logged via Telegram.
 
 If it's not on the agent's qualified list, it doesn't get bet. Hunches, tips and "looks good" bets are banned.
 
