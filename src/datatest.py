@@ -3,6 +3,7 @@ returns for Australian bookmakers, and confirms the Telegram bot works.
 Costs roughly 12 odds credits (2 games x 6 markets x 1 region)."""
 import os
 import sys
+from datetime import datetime, timezone
 import requests
 
 ODDS_KEY = os.environ["ODDS_API_KEY"]
@@ -37,11 +38,17 @@ def main():
     evs = events.json()
     lines.append(f"NBA events listed: {len(evs)}")
     remaining = None
-    for ev in evs[:2]:
-        name = f"{ev['away_team']} @ {ev['home_team']}"
+    now = datetime.now(timezone.utc)
+    upcoming = [e for e in evs if datetime.fromisoformat(e["commence_time"].replace("Z", "+00:00")) > now]
+    lines.append(f"Not yet started: {len(upcoming)}")
+    for ev in upcoming[:3]:
+        tip = datetime.fromisoformat(ev["commence_time"].replace("Z", "+00:00"))
+        mins = int((tip - now).total_seconds() // 60)
+        name = f"{ev['away_team']} @ {ev['home_team']} (tips in {mins} min)"
         r = requests.get(
             f"{BASE}/events/{ev['id']}/odds",
-            params={"apiKey": ODDS_KEY, "regions": "au", "markets": ",".join(MARKETS),
+            params={"apiKey": ODDS_KEY, "bookmakers": "sportsbet,neds,tab,ladbrokes_au,tabtouch",
+                    "markets": ",".join(MARKETS),
                     "oddsFormat": "decimal"},
             timeout=30,
         )
@@ -52,6 +59,10 @@ def main():
         data = r.json()
         lines.append(f"\n{name}")
         books = data.get("bookmakers", [])
+        got = {b["key"] for b in books}
+        for want in ("neds", "tab", "ladbrokes_au"):
+            if want not in got:
+                lines.append(f"  {want}: nothing returned")
         if not books:
             lines.append("  No AU bookmaker props returned")
         for b in books:
