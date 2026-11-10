@@ -134,7 +134,7 @@ def evaluate_event(ev, espn, injuries, standings, spread):
                 best = {"line": point, "book": book, "odds": px, "edge": edge, "p": p, "hits": hits}
         if not best or best["edge"] < MIN_EDGE:
             continue
-        form = f"Last 10: {best['hits']}/{len(last)} over"
+        form = f"Last {len(last)}: {best['hits']}/{len(last)} over"
         cands.append({"player": name, "pn": pn, "stat": stat, "line": best["line"], "book": best["book"],
                       "odds": best["odds"], "edge": best["edge"], "p": best["p"], "mu": mu,
                       "ref_line": ref[1], "ref_odds": ref[2], "hits": best["hits"],
