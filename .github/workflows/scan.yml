@@ -1,0 +1,41 @@
+name: Scan
+# Times are UTC. Sydney daylight time (AEDT, UTC+11): 23:00 = 10:00, 01:00 = 12:00, 02:15 = 13:15.
+# When daylight saving ends (April) add 1 hour to each.
+on:
+  schedule:
+    - cron: "0 23 * * *"
+    - cron: "0 1 * * *"
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "main or update"
+        default: "main"
+concurrency:
+  group: ledger
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  scan:
+    # 12:00 and 13:15 runs only when FULL_SCHEDULE = true (needs the paid odds plan)
+    if: github.event_name != 'schedule' || github.event.schedule == '0 23 * * *' || vars.FULL_SCHEDULE == 'true'
+    runs-on: ubuntu-latest
+    env:
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      DRY_RUN: ${{ vars.DRY_RUN || 'true' }}
+      RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.run || (github.event.schedule == '0 23 * * *' && 'main' || 'update') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -q -r requirements.txt
+      - run: python -m agent.scan --run "$RUN"
+      - name: Save ledger
+        run: |
+          git config user.name "props-agent"
+          git config user.email "props-agent@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || (git commit -qm "data: scan $RUN" && git pull -q --rebase && git push -q)

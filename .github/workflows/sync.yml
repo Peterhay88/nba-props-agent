@@ -1,0 +1,30 @@
+name: Sync
+# Every 20 minutes, 10:00-18:59 Sydney (AEDT): records Telegram taps/commands and settles finished games.
+on:
+  schedule:
+    - cron: "*/20 23,0-7 * * *"
+  workflow_dispatch:
+concurrency:
+  group: ledger
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      DRY_RUN: ${{ vars.DRY_RUN || 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -q -r requirements.txt
+      - run: python -m agent.sync
+      - name: Save ledger
+        run: |
+          git config user.name "props-agent"
+          git config user.email "props-agent@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || (git commit -qm "data: sync" && git pull -q --rebase && git push -q)
