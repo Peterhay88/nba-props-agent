@@ -1,11 +1,8 @@
 name: Scan
 # Times are UTC. Sydney daylight time (AEDT, UTC+11): 23:00 = 10:00, 01:00 = 12:00, 02:15 = 13:15.
 # When daylight saving ends (April) add 1 hour to each.
+# Triggered by cron-job.org (GitHub's own timer proved unreliable: runs dropped or hours late).
 on:
-  schedule:
-    - cron: "0 23 * * *"
-    - cron: "0 1 * * *"
-    - cron: "15 2 * * *"
   workflow_dispatch:
     inputs:
       run:
