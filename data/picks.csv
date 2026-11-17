@@ -43,3 +43,8 @@ pick_id,date,run,n,type,legs,odds_event_id,espn_event_id,game,tip_utc,player,sta
 20261116-3,2026-11-16,main,3,single,,f8334b355cf9346d423fa9eb93b425f0,401909993,Thunder @ Kings,2026-11-16T02:10:00+00:00,Aday Mara,pts,8.5,Neds,1.60,0.0859,0.679,10.9,9.5,1.87,8,500,Last 10: 8/10 over; Soft matchup +3%,suggested,1,win,16
 20261116-4,2026-11-16,main,4,single,,db26abc3cfd070ab012227413abafeb2,401909987,Hornets @ Clippers,2026-11-15T21:40:00+00:00,Keaton Wagler,pts,7.5,Sportsbet,1.45,0.0857,0.749,12.3,10.5,1.90,8,500,Last 10: 8/10 over; Home split +11%,suggested,1,win,12
 20261116-5,2026-11-16,main,5,multi,20261116-1+20261116-2,,,,2026-11-16T02:10:00+00:00,#1 + #2,,,Neds,2.17,,,,,,,250,,suggested,1,loss,
+20261117-1,2026-11-17,main,1,single,,efd4d1a289cc2aca91d30116e3629d1f,401909997,76ers @ Nets,2026-11-17T00:40:00+00:00,Danny Wolf,pts,6.5,Sportsbet,1.60,0.1907,0.744,10.8,7.5,1.87,6,500,Last 7: 6/7 over,suggested,1,,
+20261117-2,2026-11-17,main,2,single,,11be2fc6d73e2a4e187a643b4c051093,401909998,Rockets @ Heat,2026-11-17T00:40:00+00:00,Giannis Antetokounmpo,reb,9.5,Neds,1.55,0.1394,0.735,13.3,10.5,1.91,9,500,Last 10: 9/10 over,suggested,1,,
+20261117-3,2026-11-17,main,3,single,,b9dd15890ac45468b3e3ec1092f67c18,401909999,Blazers @ Timberwolves,2026-11-17T01:10:00+00:00,Jaden McDaniels,ast,2.5,Sportsbet,1.52,0.1342,0.746,4.4,3.5,2.10,10,500,Last 10: 10/10 over; Home split +10%,suggested,1,,
+20261117-4,2026-11-17,main,4,single,,11be2fc6d73e2a4e187a643b4c051093,401909998,Rockets @ Heat,2026-11-17T00:40:00+00:00,Davion Mitchell,pts,11.5,Neds,1.50,0.1196,0.746,17.0,13.5,1.90,8,500,Last 10: 8/10 over,suggested,1,,
+20261117-5,2026-11-17,main,5,multi,20261117-1+20261117-2,,,,2026-11-17T00:40:00+00:00,#1 + #2,,,Mixed,2.48,,,,,,,250,,suggested,1,,
