@@ -258,8 +258,10 @@ def main():
         ranked = [c for c in ranked if c["pn"] not in picked_players]
 
     # max 4 picks a day across ALL runs: update runs only fill slots the morning didn't use or that were withdrawn
+    # Live: max 4 picks a day across ALL runs. Test mode: up to 4 per run, tagged core (within the daily 4) or extra.
     active = sum(1 for p in todays if p["type"] == "single" and p["status"] == "suggested")
-    slots = max(0, min(ctx["slots"], MAX_BETS_DAY - active))
+    core_left = max(0, MAX_BETS_DAY - active)
+    slots = ctx["slots"] if DRY_RUN else max(0, min(ctx["slots"], core_left))
     chosen = ranked[:slots]
     for c in chosen:
         amt, pct = rules.stake(c["edge"], ctx)
@@ -272,8 +274,10 @@ def main():
                          "line": f"{c['line']:g}", "book": BOOKS[c["book"]], "odds": f"{c['odds']:.2f}",
                          "edge": f"{c['edge']:.4f}", "model_p": f"{c['p']:.3f}", "mu": f"{c['mu']:.1f}",
                          "ref_line": f"{c['ref_line']:g}", "ref_odds": f"{c['ref_odds']:.2f}", "hits10": c["hits"],
-                         "stake": amt, "flags": c["flags"], "status": "suggested", "dry_run": "1" if DRY_RUN else "0"})
-        lines.append(fmt_pick(next_n, c, amt, pct))
+                         "stake": amt, "flags": c["flags"], "status": "suggested", "dry_run": "1" if DRY_RUN else "0",
+                         "tier": "core" if core_left > 0 else "extra"})
+        core_left -= 1
+        lines.append(fmt_pick(next_n, c, amt, pct) + ("" if new_rows[-1]["tier"] == "core" else "\n   (extra: beyond the live 4-a-day cap)"))
         buttons.append([{"text": f"#{next_n} Placed", "callback_data": f"P|{pid}"},
                         {"text": f"#{next_n} Skip", "callback_data": f"S|{pid}"}])
         next_n += 1

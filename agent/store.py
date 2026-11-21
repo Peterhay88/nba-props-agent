@@ -5,7 +5,7 @@ from .config import DATA_DIR
 
 PICK_COLS = ["pick_id", "date", "run", "n", "type", "legs", "odds_event_id", "espn_event_id", "game", "tip_utc",
              "player", "stat", "line", "book", "odds", "edge", "model_p", "mu", "ref_line", "ref_odds", "hits10",
-             "stake", "flags", "status", "dry_run", "result", "actual"]
+             "stake", "flags", "status", "dry_run", "result", "actual", "tier"]
 BET_COLS = ["bet_id", "date", "pick_id", "type", "description", "book", "odds", "stake", "qualified",
             "status", "result", "pl", "placed_utc"]
 

@@ -205,10 +205,18 @@ def settle():
             lines += [f"would have {'WON' if p['result'] == 'win' else p['result'].upper()} {p['player']} o{p['line']} {p['stat']} (actual {p['actual']})"
                       for p in pulled]
         record = [p for p in picks if p["type"] == "single" and p["status"] != "withdrawn" and p["result"] in ("win", "loss")]
-        if record:
-            w = sum(p["result"] == "win" for p in record)
-            units = sum(float(p["odds"]) - 1 if p["result"] == "win" else -1 for p in record)
-            lines += ["", f"Test record: {w}/{len(record)} won ({100 * w / len(record):.0f}%), {units:+.1f} units"]
+
+        def rec(rows, label):
+            if not rows:
+                return None
+            w = sum(p["result"] == "win" for p in rows)
+            units = sum(float(p["odds"]) - 1 if p["result"] == "win" else -1 for p in rows)
+            return f"{label}: {w}/{len(rows)} won ({100 * w / len(rows):.0f}%), {units:+.1f} units"
+        recs = [rec(record, "Test record, all picks"),
+                rec([p for p in record if p["tier"] == "core"], "Core (live 4-a-day)"),
+                rec([p for p in record if p["tier"] == "extra"], "Extra (later scans)")]
+        if any(recs):
+            lines += [""] + [r for r in recs if r]
         if lines:
             tg.send("\n".join(lines))
 
