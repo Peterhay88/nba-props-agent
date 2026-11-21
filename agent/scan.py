@@ -2,7 +2,7 @@
 import argparse
 from datetime import timedelta
 from . import odds, store, tg, rules, sync
-from .config import (BOOKS, ODDS_MIN, ODDS_MAX, MIN_EDGE, MARKET_WEIGHT, ALT_MARGIN, KEEP_PRICE_DROP, KEEP_MIN_EDGE, SEASON_END_SKIP, BLOWOUT_SPREAD, MIN_GAMES,
+from .config import (BOOKS, ODDS_MIN, ODDS_MAX, MIN_EDGE, MARKET_WEIGHT, ALT_MARGIN, KEEP_PRICE_DROP, KEEP_MIN_EDGE, MAX_BETS_DAY, SEASON_END_SKIP, BLOWOUT_SPREAD, MIN_GAMES,
                      SLATE_HOURS, DRY_RUN, STAT_NAME)
 from .espn import Espn, tkey
 from .model import project, prob_over
@@ -232,13 +232,21 @@ def main():
     new_rows, lines, buttons = [], [], []
 
     # update runs: re-check earlier picks for games that were actually re-scanned this run
-    withdrawn, repriced = [], []
+    withdrawn, repriced, alerts = [], [], []
     if run != "main":
         placed = {b["pick_id"] for b in bets}
         for p in todays:
-            if (p["type"] != "single" or p["status"] != "suggested" or p["pick_id"] in placed
-                    or p["odds_event_id"] not in rechecks):
+            if p["type"] != "single" or p["odds_event_id"] not in rechecks:
                 continue   # not re-scanned (e.g. tipping within 10 min): leave it alone
+            if p["pick_id"] in placed:
+                # you're on it: never withdrawn, price moves don't matter, only flag new injury news (once)
+                reason = rechecks[p["odds_event_id"]]["skip"].get(norm(p["player"]))
+                if reason and "ALERTED" not in p["flags"]:
+                    p["flags"] = (p["flags"] + "; " if p["flags"] else "") + "ALERTED: " + reason
+                    alerts.append((p, reason))
+                continue
+            if p["status"] != "suggested":
+                continue
             keep, reason, note = recheck_pick(p, rechecks[p["odds_event_id"]])
             if not keep:
                 p["status"] = "withdrawn"
@@ -249,7 +257,9 @@ def main():
         picked_players = {norm(p["player"]) for p in todays if p["type"] == "single"}
         ranked = [c for c in ranked if c["pn"] not in picked_players]
 
-    slots = ctx["slots"]
+    # max 4 picks a day across ALL runs: update runs only fill slots the morning didn't use or that were withdrawn
+    active = sum(1 for p in todays if p["type"] == "single" and p["status"] == "suggested")
+    slots = max(0, min(ctx["slots"], MAX_BETS_DAY - active))
     chosen = ranked[:slots]
     for c in chosen:
         amt, pct = rules.stake(c["edge"], ctx)
@@ -303,8 +313,11 @@ def main():
             msg += ["", f"Skipped: {skip_txt}"]
         msg += ["", foot]
         tg.send("\n".join(msg), None if DRY_RUN else buttons)
-    elif lines or withdrawn or repriced:
+    elif lines or withdrawn or repriced or alerts:
         msg = [f"{head}Props agent · update · {when}"]
+        for p, reason in alerts:
+            msg.append(f"HEADS UP #{p['n']} (you're on it) {p['player']} o{p['line']} {p['stat']}: {reason}. "
+                       f"If he doesn't play, bookies normally void the bet.")
         for p, reason in withdrawn:
             msg.append(f"WITHDRAWN #{p['n']} {p['player']} o{p['line']} {p['stat']}: {reason}")
         for p, note in repriced:

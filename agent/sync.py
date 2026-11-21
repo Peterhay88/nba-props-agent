@@ -26,6 +26,8 @@ def _place(pick, book, odds, stake, bets, note=""):
                  "description": _desc(pick), "book": book, "odds": f"{odds:.2f}", "stake": f"{stake:.0f}",
                  "qualified": qualified, "status": "open", "result": "", "pl": "", "placed_utc": now_utc().isoformat()})
     msg = f"Logged {bet_id}: #{pick['n']} {_desc(pick)} @ ${odds:.2f} {book}, ${stake:.0f}{note}"
+    if pick.get("status") == "withdrawn":
+        msg += "\n(This pick was withdrawn by a later scan, but you're on it, so it's logged and will settle normally.)"
     if qualified == "N":
         msg += "\nBREACH: over the 4-bets-a-day limit. Tomorrow is a no-bet day."
     return msg
@@ -34,7 +36,7 @@ def _place(pick, book, odds, stake, bets, note=""):
 def _today_pick(picks, n):
     today = syd_date().isoformat()
     for p in picks:
-        if p["date"] == today and p["n"] == str(n) and p["status"] == "suggested":
+        if p["date"] == today and p["n"] == str(n) and p["status"] in ("suggested", "withdrawn"):
             return p
     return None
 
