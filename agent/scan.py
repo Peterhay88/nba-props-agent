@@ -168,7 +168,8 @@ def recheck_pick(p, rc):
     edge = ((1 - MARKET_WEIGHT) * p_model + MARKET_WEIGHT * p_market) * px - 1
     orig = float(p["odds"])
     move = f"${orig:.2f} {p['book']} -> ${px:.2f} {BOOKS[book]}"
-    if px < orig - KEEP_PRICE_DROP or edge < KEEP_MIN_EDGE:
+    # withdraw only if the edge has gone, or the price fell more than 5c AND it no longer clears the normal 3% bar
+    if edge < KEEP_MIN_EDGE or (px < orig - KEEP_PRICE_DROP and edge < MIN_EDGE):
         return False, f"price moved {move}, edge now {100 * edge:.1f}% (was {100 * float(p['edge']):.1f}%)", ""
     if abs(px - orig) >= 0.03:
         return True, "", f"price moved {move}, edge now {100 * edge:.1f}%. Still a bet."
