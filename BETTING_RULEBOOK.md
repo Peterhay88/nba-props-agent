@@ -74,3 +74,10 @@ Log for each bet: date, game, player, market, line, bookie, odds, stake, agent e
 - **Run times (Sydney):** 10:00 full scan · 12:00 re-check · 13:30 final check for late games. The 12:00 and 13:30 runs only message when something changes (new qualifier, pick withdrawn, odds out of range).
 - **Outputs:** phone message per run, plus a dashboard (bankroll, limits used, today's picks, ledger, predicted-vs-actual edge).
 - **Results:** logged automatically after games finish.
+
+## 12. Update scans and withdrawals (added 21 Nov 2026)
+- **4 picks a day, total, across all scans.** The 10:00 scan sets the day's picks. The 12:00 and 13:15 updates only re-check them, and add a new pick only if a slot is free (fewer than 4 in the morning, or one withdrawn).
+- **Placed bets are locked.** Once logged (Placed button, /b365 or /placed), a pick is never withdrawn. Price moves don't matter after that. New injury news triggers a one-off HEADS UP message only.
+- **Unplaced picks are withdrawn only for a stated reason:** new injury or minutes news, the line no longer offered, or the edge gone (below 1%, or the price fell more than 5c and the edge is below 3%). Small price moves get a "STILL ON" message instead.
+- **Tap Placed as soon as you bet,** so a later scan knows you're on it.
+- Withdrawn picks are graded but kept out of the test record.
