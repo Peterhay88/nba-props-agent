@@ -190,12 +190,24 @@ def settle():
         lines.append(status_text(bets))
         tg.send("\n".join(lines))
     elif changed and all(p["dry_run"] == "1" for p in changed):
-        singles = [p for p in changed if p["type"] == "single"]
+        singles = [p for p in changed if p["type"] == "single" and p["status"] != "withdrawn"]
+        pulled = [p for p in changed if p["type"] == "single" and p["status"] == "withdrawn"]
+        lines = []
         if singles:
             w = sum(p["result"] == "win" for p in singles)
             l = sum(p["result"] == "loss" for p in singles)
-            lines = [f"TEST picks graded: {w} won, {l} lost"]
+            lines.append(f"TEST picks graded: {w} won, {l} lost")
             lines += [f"{p['result'].upper()} {p['player']} o{p['line']} {p['stat']} (actual {p['actual']})" for p in singles]
+        if pulled:
+            lines += ["", "Withdrawn picks (not counted in the record):"]
+            lines += [f"would have {'WON' if p['result'] == 'win' else p['result'].upper()} {p['player']} o{p['line']} {p['stat']} (actual {p['actual']})"
+                      for p in pulled]
+        record = [p for p in picks if p["type"] == "single" and p["status"] != "withdrawn" and p["result"] in ("win", "loss")]
+        if record:
+            w = sum(p["result"] == "win" for p in record)
+            units = sum(float(p["odds"]) - 1 if p["result"] == "win" else -1 for p in record)
+            lines += ["", f"Test record: {w}/{len(record)} won ({100 * w / len(record):.0f}%), {units:+.1f} units"]
+        if lines:
             tg.send("\n".join(lines))
 
 

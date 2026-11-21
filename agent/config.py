@@ -16,6 +16,9 @@ MIN_STAKE = 50.0
 # Shrink the model toward the bookie's own price: small samples overstate edges.
 MARKET_WEIGHT = 0.5      # 50% model, 50% market
 ALT_MARGIN = 0.06        # assumed bookie margin on alternate lines
+# Update runs re-check earlier picks. Small price moves don't cancel a pick:
+KEEP_PRICE_DROP = 0.05   # keep if the best price is no more than 5c below the original
+KEEP_MIN_EDGE = 0.01     # ...and the recalculated edge is still at least 1%
 
 BOOKS = {"sportsbet": "Sportsbet", "neds": "Neds", "tab": "TAB"}
 # stat -> (main market, alt market, ESPN gamelog label, ESPN box key)

@@ -2,7 +2,7 @@
 import argparse
 from datetime import timedelta
 from . import odds, store, tg, rules, sync
-from .config import (BOOKS, ODDS_MIN, ODDS_MAX, MIN_EDGE, MARKET_WEIGHT, ALT_MARGIN, SEASON_END_SKIP, BLOWOUT_SPREAD, MIN_GAMES,
+from .config import (BOOKS, ODDS_MIN, ODDS_MAX, MIN_EDGE, MARKET_WEIGHT, ALT_MARGIN, KEEP_PRICE_DROP, KEEP_MIN_EDGE, SEASON_END_SKIP, BLOWOUT_SPREAD, MIN_GAMES,
                      SLATE_HOURS, DRY_RUN, STAT_NAME)
 from .espn import Espn, tkey
 from .model import project, prob_over
@@ -55,17 +55,19 @@ def team_context(espn, team_id, team_key, tip, injuries, rosters):
 
 
 def evaluate_event(ev, espn, injuries, standings, spread):
-    """Returns (candidates, skip_reasons)."""
+    """Returns (candidates, skip_reasons, recheck). recheck holds per-player skip reasons and every line on offer."""
     tip = parse_ts(ev["commence_time"])
     skips = []
+    recheck = {"skip": {}, "lines": {}}
     g = match_espn(espn, ev)
     if not g:
-        return [], [f"{ev['away_team']} @ {ev['home_team']}: no ESPN match"]
+        return [], [f"{ev['away_team']} @ {ev['home_team']}: no ESPN match"], None
     if spread is not None and spread >= BLOWOUT_SPREAD:
-        return [], [f"{ev['away_team']} @ {ev['home_team']}: blowout risk (spread {spread})"]
+        return [], [f"{ev['away_team']} @ {ev['home_team']}: blowout risk (spread {spread})"], \
+            {"game_skip": f"blowout risk (spread now {spread})"}
     props = odds.props(ev["id"])
     if not props:
-        return [], [f"{ev['away_team']} @ {ev['home_team']}: no props posted"]
+        return [], [f"{ev['away_team']} @ {ev['home_team']}: no props posted"], None
     rosters = {g["home_id"]: espn.roster(g["home_id"]), g["away_id"]: espn.roster(g["away_id"])}
     side = {g["home_id"]: (True, g["home"], g["away"]), g["away_id"]: (False, g["away"], g["home"])}
     tctx = {tid: team_context(espn, tid, side[tid][1], tip, injuries, rosters) for tid in rosters}
@@ -105,6 +107,7 @@ def evaluate_event(ev, espn, injuries, standings, spread):
                     reason = "minutes drop (possible restriction)"
             if reason:
                 seen_players[pn] = None
+                recheck["skip"][pn] = reason
                 skips.append(f"{name}: {reason}")
                 continue
         gl = seen_players[pn]
@@ -119,6 +122,11 @@ def evaluate_event(ev, espn, injuries, standings, spread):
         ref = min(pool, key=lambda x: abs(x[2] - 1.90)) if pool else None
         if not ref:
             continue
+        offers = {}
+        for book, point, px in rec["alts"] + rec["main"]:
+            if point not in offers or px > offers[point][1]:
+                offers[point] = (book, px)
+        recheck["lines"][(pn, stat)] = {"offers": offers, "mu": mu, "sigma": sigma, "last": last}
         best_by_line = {}
         for book, point, px in rec["alts"] + rec["main"]:
             if ODDS_MIN <= px <= ODDS_MAX and point <= ref[1]:
@@ -140,7 +148,31 @@ def evaluate_event(ev, espn, injuries, standings, spread):
                       "ref_line": ref[1], "ref_odds": ref[2], "hits": best["hits"],
                       "flags": "; ".join([form] + flags), "odds_event_id": ev["id"], "espn_event_id": g["id"],
                       "game": game_label, "tip": tip})
-    return cands, skips
+    return cands, skips, recheck
+
+
+def recheck_pick(p, rc):
+    """Returns (keep, withdraw_reason, note). Withdraw only for a real reason; small price moves are tolerated."""
+    if "game_skip" in rc:
+        return False, rc["game_skip"], ""
+    pn = norm(p["player"])
+    if pn in rc["skip"]:
+        return False, rc["skip"][pn] + " (new since the morning scan)", ""
+    st = rc["lines"].get((pn, p["stat"]))
+    line = float(p["line"])
+    if not st or line not in st["offers"]:
+        return False, f"o{p['line']} no longer offered by Sportsbet, Neds or TAB (market pulled)", ""
+    book, px = st["offers"][line]
+    p_model, _ = prob_over(line, st["mu"], st["sigma"], st["last"])
+    p_market = (1 / px) / (1 + ALT_MARGIN)
+    edge = ((1 - MARKET_WEIGHT) * p_model + MARKET_WEIGHT * p_market) * px - 1
+    orig = float(p["odds"])
+    move = f"${orig:.2f} {p['book']} -> ${px:.2f} {BOOKS[book]}"
+    if px < orig - KEEP_PRICE_DROP or edge < KEEP_MIN_EDGE:
+        return False, f"price moved {move}, edge now {100 * edge:.1f}% (was {100 * float(p['edge']):.1f}%)", ""
+    if abs(px - orig) >= 0.03:
+        return True, "", f"price moved {move}, edge now {100 * edge:.1f}%. Still a bet."
+    return True, "", ""
 
 
 def fmt_pick(n, c, stake_amt, pct):
@@ -179,9 +211,11 @@ def main():
     espn = Espn()
     injuries, standings = espn.injuries(), espn.standings()
     spreads = odds.spreads()
-    cands, skips = [], []
+    cands, skips, rechecks = [], [], {}
     for ev in evs:
-        c, s = evaluate_event(ev, espn, injuries, standings, spreads.get(ev["id"]))
+        c, s, rc = evaluate_event(ev, espn, injuries, standings, spreads.get(ev["id"]))
+        if rc is not None:
+            rechecks[ev["id"]] = rc
         cands += c
         skips += s
         print(f"{ev['away_team']} @ {ev['home_team']}: {len(c)} qualified, {len(s)} skipped")
@@ -193,21 +227,26 @@ def main():
     ranked = sorted(best.values(), key=lambda c: c["edge"], reverse=True)
     picks = store.picks()
     todays = [p for p in picks if p["date"] == today.isoformat()]
-    sent_keys = {(norm(p["player"]), p["stat"]) for p in todays if p["type"] == "single" and p["status"] == "suggested"}
     next_n = max([int(p["n"]) for p in todays] + [0]) + 1
     new_rows, lines, buttons = [], [], []
 
-    # update runs: withdraw earlier picks for games not started that no longer qualify
-    withdrawn = []
+    # update runs: re-check earlier picks for games that were actually re-scanned this run
+    withdrawn, repriced = [], []
     if run != "main":
-        live_keys = {(c["pn"], c["stat"]) for c in ranked}
         placed = {b["pick_id"] for b in bets}
         for p in todays:
-            if (p["type"] == "single" and p["status"] == "suggested" and parse_ts(p["tip_utc"]) > now
-                    and (norm(p["player"]), p["stat"]) not in live_keys and p["pick_id"] not in placed):
+            if (p["type"] != "single" or p["status"] != "suggested" or p["pick_id"] in placed
+                    or p["odds_event_id"] not in rechecks):
+                continue   # not re-scanned (e.g. tipping within 10 min): leave it alone
+            keep, reason, note = recheck_pick(p, rechecks[p["odds_event_id"]])
+            if not keep:
                 p["status"] = "withdrawn"
-                withdrawn.append(p)
-        ranked = [c for c in ranked if (c["pn"], c["stat"]) not in sent_keys]
+                p["flags"] = (p["flags"] + "; " if p["flags"] else "") + "WITHDRAWN: " + reason
+                withdrawn.append((p, reason))
+            elif note:
+                repriced.append((p, note))
+        picked_players = {norm(p["player"]) for p in todays if p["type"] == "single"}
+        ranked = [c for c in ranked if c["pn"] not in picked_players]
 
     slots = ctx["slots"]
     chosen = ranked[:slots]
@@ -263,10 +302,12 @@ def main():
             msg += ["", f"Skipped: {skip_txt}"]
         msg += ["", foot]
         tg.send("\n".join(msg), None if DRY_RUN else buttons)
-    elif lines or withdrawn:
+    elif lines or withdrawn or repriced:
         msg = [f"{head}Props agent · update · {when}"]
-        for p in withdrawn:
-            msg.append(f"WITHDRAWN #{p['n']} {p['player']} o{p['line']} {p['stat']}: no longer qualifies (injury news or price moved)")
+        for p, reason in withdrawn:
+            msg.append(f"WITHDRAWN #{p['n']} {p['player']} o{p['line']} {p['stat']}: {reason}")
+        for p, note in repriced:
+            msg.append(f"STILL ON #{p['n']} {p['player']} o{p['line']} {p['stat']}: {note}")
         if lines:
             msg += ["New qualifiers:"] + lines
         msg += ["", foot]
