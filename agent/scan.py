@@ -208,6 +208,8 @@ def main():
     if not evs:
         if run == "main":
             tg.send(f"{head}Props agent: no NBA games on today's slate.")
+        else:
+            tg.send(f"{head}Props update {now.astimezone(SYD):%H:%M}: ran OK. No games left to check today.")
         return
     espn = Espn()
     injuries, standings = espn.injuries(), espn.standings()
@@ -330,6 +332,10 @@ def main():
             msg += ["New qualifiers:"] + lines
         msg += ["", foot]
         tg.send("\n".join(msg), None if DRY_RUN else buttons)
+    else:
+        skipped = f" ({skip_txt})" if skip_txt else ""
+        tg.send(f"{head}Props update {now.astimezone(SYD):%H:%M}: ran OK. No changes. "
+                f"{len(evs)} game(s) re-checked, nothing new qualified{skipped}.")
     print("\n".join(lines) or "no picks")
     print("Skipped:", skip_txt)
     print("Credits left:", odds.credits_left)
