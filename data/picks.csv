@@ -101,3 +101,4 @@ pick_id,date,run,n,type,legs,odds_event_id,espn_event_id,game,tip_utc,player,sta
 20261123-3,2026-11-23,main,3,single,,335ad5604b51b7742fd1dee92d78da35,401910031,Magic @ Wizards,2026-11-23T00:10:00+00:00,AJ Dybantsa,reb,5.5,Neds,1.55,0.0847,0.700,7.7,6.5,2.02,8,500,Last 10: 8/10 over,suggested,1,,,core
 20261123-4,2026-11-23,main,4,single,,031fa761cc38e1b5afd9309b731b38b2,401910034,Pacers @ Knicks,2026-11-23T01:10:00+00:00,Kelly Oubre Jr.,pts,10.5,Sportsbet,1.58,0.0805,0.684,13.5,12.5,1.87,8,500,Last 10: 8/10 over; Tough matchup -5%,suggested,1,,,core
 20261123-5,2026-11-23,main,5,multi,20261123-1+20261123-2,,,,2026-11-23T01:40:00+00:00,#1 + #2,,,Sportsbet,2.46,,,,,,,250,,suggested,1,,,
+20261123-6,2026-11-23,update,6,single,,b8c5bdb50209c7d050400c7d28c32e30,401910035,Celtics @ Warriors,2026-11-23T01:40:00+00:00,Georges Niang,reb,1.5,TAB,1.42,0.0352,0.729,2.9,1.5,1.42,8,250,"Last 10: 8/10 over; Stephen Curry out, usage up",suggested,1,,,extra
